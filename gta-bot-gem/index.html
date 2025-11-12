@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>L.S. - Los Santos AI</title>
+    <meta name="description" content="L.S.: IA focada em tudo sobre o universo de GTA V.">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* Base */
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            /* Fundo Temático GTA V - Imagem genérica da cidade de Los Santos */
+            background: #111 url('https://upload.wikimedia.org/wikipedia/en/a/a7/Grand_Theft_Auto_V_cover_art.jpg') no-repeat center/cover fixed;
+            background-blend-mode: multiply;
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Header */
+        header {
+            padding: 1rem 2rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            backdrop-filter: blur(10px);
+            background: rgba(0,0,0,0.7); /* Mais escuro para o tema GTA */
+        }
+        .logo {
+            width: 40px; height: 40px;
+            /* Logo: Ícone do GTA V (V) */
+            background: url('https://seeklogo.com/images/G/grand-theft-auto-v-logo-39B78297FC-seeklogo.com.png') no-repeat center/contain;
+            background-size: contain;
+            border-radius: 50%;
+            border: 2px solid #555;
+            /* Cor de destaque GTA V (laranja/amarelo) */
+            box-shadow: 0 0 5px #f0a300; 
+        }
+        .title { font-size: 1.5rem; font-weight: 700; color: #f0a300; }
+
+        /* Chat Wrapper */
+        .chat-wrapper {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+        }
+        .chat-container {
+            flex: 1;
+            max-width: 900px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 1.5rem 1.5rem 0;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            overflow-y: auto;
+            scrollbar-width: none;
+        }
+        .chat-container::-webkit-scrollbar { display: none; }
+
+        /* Input fixo */
+        .input-area {
+            padding: 0 1.5rem 1rem;
+            max-width: 900px;
+            width: 100%;
+            margin: 0 auto;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            background: rgba(0,0,0,0.7); /* Mais escuro para o tema GTA */
+            backdrop-filter: blur(10px);
+        }
+        .input-wrapper {
+            display: flex;
+            gap: 0.75rem;
+            align-items: flex-end;
+        }
+        .input-box {
+            flex: 1;
+            background: rgba(26,26,26,0.8);
+            border: 1px solid #555;
+            border-radius: 1rem;
+            padding: 0.75rem 1rem;
+            color: #fff;
+            font-size: 1rem;
+            resize: none;
+            min-height: 50px;
+            max-height: 150px;
+            overflow-y: auto;
+            outline: none;
+        }
+        .input-box:focus {
+            border-color: #f0a300; /* Destaque Laranja GTA */
+            box-shadow: 0 0 0 1px #f0a300;
+        }
+        .send-button {
+            background: linear-gradient(135deg, #f0a300, #cc8500); /* Laranja-Amarelo GTA */
+            color: #000;
+            border: none;
+            width: 50px; height: 50px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            transition: all 0.2s;
+        }
+        .send-button:hover { transform: scale(1.05); }
+        .send-button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* Mensagens */
+        .message {
+            max-width: 80%;
+            padding: 1rem 1.2rem;
+            border-radius: 1rem;
+            word-wrap: break-word;
+        }
+        .user-message {
+            align-self: flex-end;
+            background: #1f1f1f;
+            border-bottom-right-radius: 0.3rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+        .ai-message {
+            align-self: flex-start;
+            background: rgba(17,17,17,0.9);
+            border: 1px solid #333;
+            border-bottom-left-radius: 0.3rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+        .ai-header {
+            display: flex; align-items: center; gap: 0.5rem;
+            margin-bottom: 0.5rem; font-size: 0.9rem; color: #f0a300; /* Laranja GTA */
+        }
+        .ai-name { font-weight: 600; }
+
+        /* Loading */
+        .loading { display: flex; gap: 0.5rem; padding: 0.5rem 0; }
+        .dot {
+            width: 8px; height: 8px;
+            background: #f0a300; /* Laranja GTA */
+            border-radius: 50%;
+            animation: bounce 1.4s infinite;
+        }
+        .dot:nth-child(2) { animation-delay: 0.2s; }
+        .dot:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes bounce {
+            0%,80%,100% { transform: translateY(0) }
+            40% { transform: translateY(-8px) }
+        }
+
+        /* Rodapé Adicionado */
+        footer {
+            padding: 0.5rem 1rem;
+            text-align: center;
+            font-size: 0.75rem;
+            color: #aaa;
+            background: rgba(0, 0, 0, 0.8);
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(5px);
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo"></div>
+        <div class="title">L.S. - Los Santos AI</div>
+    </header>
+
+    <div class="chat-wrapper">
+        <div class="chat-container" id="chatContainer">
+            <div class="message ai-message">
+                <div class="ai-header">
+                    <div class="logo" style="width:24px;height:24px;background:url('https://seeklogo.com/images/G/grand-theft-auto-v-logo-39B78297FC-seeklogo.com.png') no-repeat center/contain;background-size:contain;border:1px solid #555;box-shadow:0 0 5px #f0a300;"></div>
+                    <span class="ai-name">L.S.</span>
+                </div>
+                <p>E aí, sou **L.S.**, sua IA focada em tudo sobre **GTA V** e Los Santos. </p>
+                <p style="margin-top:0.5rem;font-size:0.9rem;color:#ccc;">Pergunte sobre missões, veículos, códigos de trapaça ou a melhor rota de fuga!</p>
+            </div>
+        </div>
+
+        <div class="input-area">
+            <div class="input-wrapper">
+                <textarea id="userInput" class="input-box" placeholder="Pergunte sobre GTA V..." rows="1"></textarea>
+                <button id="sendButton" class="send-button" disabled>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <footer>
+        Desenvolvido por Bruno Amaral/Pedro Antônio
+    </footer>
+    
+    <script>
+        // Elementos
+        const chatContainer = document.getElementById('chatContainer');
+        const userInput = document.getElementById('userInput');
+        const sendButton = document.getElementById('sendButton');
+
+        // Ajuste de altura
+        function adjustHeight() {
+            userInput.style.height = 'auto';
+            userInput.style.height = userInput.scrollHeight + 'px';
+        }
+        userInput.addEventListener('input', () => {
+            adjustHeight();
+            sendButton.disabled = userInput.value.trim() === '';
+        });
+
+        // Enviar com Enter
+        userInput.addEventListener('keydown', e => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                if (!sendButton.disabled) sendMessage();
+            }
+        });
+        sendButton.addEventListener('click', sendMessage);
+
+        // Enviar mensagem
+        async function sendMessage() {
+            const q = userInput.value.trim();
+            if (!q) return;
+            addMessage('user', q);
+            userInput.value = ''; adjustHeight(); sendButton.disabled = true;
+
+            const msg = addMessage('ai', '<div class="loading"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>');
+
+            try {
+                // Chama Gemini para resposta real sobre GTA V
+                const resposta = await callGeminiAPI(q);
+                msg.querySelector('.message-content').innerHTML = formatAnswer(resposta);
+            } catch (error) {
+                // Erro: Agora não há fallback de simulação.
+                console.error("Erro na API do Gemini:", error);
+                msg.querySelector('.message-content').innerHTML = `Desculpe, a comunicação com a cidade de **Los Santos** falhou (Erro na API). Tente novamente!`;
+            }
+        }
+
+        // Chamar Gemini API
+        // *** NOVA CHAVE DE API APLICADA ***
+        const GEMINI_API_KEY = 'AIzaSyDlN_vRwpthuUyQchL7yfL8S56HGv7yNv8';
+        const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+
+        async function callGeminiAPI(pergunta) {
+            // *** NOVO PROMPT FOCADO EM GTA V ***
+            const prompt = `Você é L.S., um guia especialista, rápido e levemente sarcástico, focado em Grand Theft Auto V (GTA V). Responda de forma completa e informativa sobre: "${pergunta}". Use **negrito** para termos chave (nomes de carros, missões, localizações), listas para códigos ou specs, e termine com uma pergunta de escolha para manter o tom de jogo. Foque em veículos (nomes fictícios do jogo), missões, localizações do mapa e códigos de trapaça.`;
+
+            const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ role: 'user', parts: [{ text: prompt }] }]
+                })
+            });
+
+            if (!response.ok) throw new Error('API Error');
+            const data = await response.json();
+            return data.candidates[0].content.parts[0].text.trim();
+        }
+
+        // Adicionar mensagem
+        function addMessage(sender, content) {
+            const div = document.createElement('div');
+            div.className = `message ${sender}-message`;
+            div.innerHTML = sender === 'ai' ? `
+                <div class="ai-header">
+                    <div class="logo" style="width:24px;height:24px;background:url('https://seeklogo.com/images/G/grand-theft-auto-v-logo-39B78297FC-seeklogo.com.png') no-repeat center/contain;background-size:contain;border:1px solid #555;box-shadow:0 0 5px #f0a300;"></div>
+                    <span class="ai-name">L.S.</span>
+                </div>
+                <div class="message-content">${content}</div>
+            ` : `<div class="message-content">${escapeHtml(content)}</div>`;
+            chatContainer.appendChild(div);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            return div;
+        }
+
+        function escapeHtml(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+        function formatAnswer(t) { 
+            return t
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/^- (.*)$/gm, '<br>• $1')
+                .replace(/\n/g, '<br>');
+        }
+        
+        // Inicialização
+        window.addEventListener('load', () => {
+            adjustHeight();
+            sendButton.disabled = true;
+        });
+    </script>
+</body>
+</html>
